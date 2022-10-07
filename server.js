@@ -1,45 +1,31 @@
 const express = require("express");
+const session = require("express-session");
+const MongoStore = require("connect-mongo");
 const handlebars = require("express-handlebars");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
 const { Server: HttpServer } = require("http");
 const { Server: IOServer } = require("socket.io");
-const fakerRandomProducts = require("./mockData");
-const app = express();
 const httpServer = new HttpServer(app);
 const io = new IOServer(httpServer);
 const messagesContainer = require("./containers/containerMongo.js");
-const authRouter = require("./routes/session.routes");
-const MongoStore = require("connect-mongo");
-const session = require("express-session");
-const authMiddleware = require("./middleware/auth.middleware");
+const authRouter = require("./routes/auth.routes");
+
+const { isValidPassword, checkAuth } = require("./utils/helpers.js");
+const appRouter = require("./routes/app.routes.js");
 
 const Messages = new messagesContainer();
+const app = express();
 
-const mongoConfig = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-};
-
+app.use(express.json());
 app.use(
     express.urlencoded({
         extended: true,
     })
 );
-
-app.use(express.json());
-app.use(
-    session({
-        secret: "12345",
-        resave: true,
-        saveUnitialized: true,
-        store: MongoStore.create({
-            mongoUrl:"mongodb+srv://jomalolep:Arush1429@cluster0.tus6ylk.mongodb.net/?retryWrites=true&w=majority",
-            mongoOptions: mongoConfig,
-        }),
-    })
-);
-
-//console.log([productsList, messagesList])
-
+app.set("view engine", "hbs");
+app.set("views", "./views");
+app.use(express.static(__dirname + "/public"));
 app.engine(
     "hbs",
     handlebars.engine({
@@ -48,35 +34,80 @@ app.engine(
         layoutsDir: __dirname + "/views",
     })
 );
-
-app.set("view engine", "hbs");
-app.set("views", "./views");
-app.use(express.static(__dirname + "/public"));
 app.use(authRouter);
+app.use(appRouter);
+app.use(
+    session({
+        secret: "12345",
+        rolling: true,
+        resave: true,
+        saveUnitialized: true,
+        // store: MongoStore.create({
+        //     mongoUrl:
+        //         "mongodb+srv://jomalolep:Arush1429@cluster0.tus6ylk.mongodb.net/?retryWrites=true&w=majority",
+        //     mongoOptions: mongoConfig,
+        // }),
+    })
+);
 
-app.get("/api/chat-products", authMiddleware, async (req, res) => {
-    try {
-        const getDBMessages = async () => {
-            const messages = await Messages.getMessages();
-            console.log(messages);
-            res.render("index", {
-                layout: "app",
-                list: {
-                    products: fakerRandomProducts(),
-                    messages: messages,
-                    username: req.session.username,
-                },
-            });
-        };
-        getDBMessages();
-    } catch (e) {
-        res.status(500).json({
-            success: false,
-            message: e,
-        });
-        console.log(e);
-    }
+/////////////////////////////////Passport///////////////////////////////////
+app.use(passport.initialize());
+app.use(passportt.session());
+
+passport.use(
+    "login",
+    new LocalStrategy((username, password, done) => {
+        let user; //TODO: CONSULTAR EN MONGO LOGIN
+
+        if (!user) {
+            console.log("User not found");
+            return done(null, false, { message: "User not found" });
+        }
+
+        if (!isValidPassword(user, password)) {
+            console.log("Wrong Password");
+            return done(null, false, { message: "Wrong Password" });
+        }
+
+        return done(null, user);
+    })
+);
+
+passport.use(
+    "signup",
+    new LocalStrategy(
+        { passReqToCallback: true },
+        (req, username, password, done) => {
+            let user; //TODO: CONSULTAR EN MONGO SIGNUP
+            const { name, email } = req.body;
+
+            if (user) {
+                console.log("User already exist");
+                return done(null, false, { message: "User already exist" });
+            }
+
+            const newUser = {
+                username,
+                password,
+                name,
+                email,
+            };
+            //TODO: GUARDAR EN MONGO
+            return donde;
+        }
+    )
+);
+
+passport.serializeUser((user, done) => {
+    done(null, user.id);
 });
+
+passport.deserializeUser((id, done) => {
+    let user; //TODO: CONSULTAR  MONGO
+    done(null, user);
+});
+
+//////////////////////////////////////////////////////////////////////////////////
 
 io.on("connection", (socket) => {
     socket.on("new-message", (msg) => {
