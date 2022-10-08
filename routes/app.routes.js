@@ -1,11 +1,11 @@
 const express = require("express");
 const { Router } = express;
-const authMiddleware = require("../middleware/auth.middleware");
-const fakerRandomProducts = require("./mockData");
+const { checkAuth } = require("../utils/helpers");
+const fakerRandomProducts = require("../utils/mockData");
 
-const appRouter = router();
+const appRouter = Router();
 
-appRouter.get("/api/chat-products", authMiddleware, async (req, res) => {
+appRouter.get("/api/chat-products", checkAuth,  async (req, res) => {
     try {
         const getDBMessages = async () => {
             const messages = await Messages.getMessages();

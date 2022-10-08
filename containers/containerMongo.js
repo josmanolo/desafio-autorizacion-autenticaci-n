@@ -1,22 +1,7 @@
-const mongoose = require("mongoose");
-const Messages = require("../models/messages.model")
-
-const connectDB = async () => {
-    try {
-        const url =
-            "mongodb+srv://jomalolep:Arush1429@cluster0.tus6ylk.mongodb.net/test";
-        await mongoose.connect(url, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-        console.log("MongoDB Connected");
-    } catch (error) {
-        console.log(error);
-    }
-};
+const Messages = require("../models/messages.model");
+const { connectDB } = require("../utils/helpers");
 
 connectDB();
-
 class ContainerMongo {
     constructor() {}
 

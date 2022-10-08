@@ -1,6 +1,6 @@
 const express = require("express");
 const { Router } = express;
-const authMiddleware = require("../middleware/auth.middleware");
+const passport = require("passport");
 
 const authRouter = Router();
 
@@ -11,7 +11,7 @@ authRouter.get("/login", (req, res) => {
             res.render("index", { layout: "login" });
         } else {
             console.log("User can login");
-            res.render("login");
+            res.render("index", { layout: "login" });
         }
     } catch (error) {
         res.status(500).json({
@@ -28,10 +28,18 @@ authRouter.post(
         failureRedirect: "/login",
     }),
     (req, res) => {
+        console.log(res)
+    }
+);
+
+authRouter.post(
+    "/logout",
+    (req, res) => {
         try {
-            const { userLogin } = req.body;
-            req.session.username = userLogin;
-            return res.status(200).redirect("/api/chat-products");
+            req.logout((err) => {
+                if (error) return next(err);
+                res.redirect("/login");
+            });
         } catch (error) {
             res.status(500).json({
                 success: false,
@@ -41,18 +49,15 @@ authRouter.post(
     }
 );
 
-authRouter.post("/logout", authMiddleware, (req, res) => {
-    try {
-        req.logout((err) => {
-            if (error) return next(err);
-            res.redirect('/login');
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error,
-        });
-    }
+authRouter.get("/signup", (req, res) => {
+    res.render("index", { layout: "signup" });
 });
+
+authRouter.post("/signup", passport.authenticate("signup", {
+    successRedirect: "/login",
+    failureRedirect: "/signup",
+}), (req, res) => {
+    console.log("yes")
+})
 
 module.exports = authRouter;

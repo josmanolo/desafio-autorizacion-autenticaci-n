@@ -1,15 +1,13 @@
 const express = require("express");
 const session = require("express-session");
-const MongoStore = require("connect-mongo");
 const handlebars = require("express-handlebars");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const { Server: HttpServer } = require("http");
 const { Server: IOServer } = require("socket.io");
-const httpServer = new HttpServer(app);
-const io = new IOServer(httpServer);
 const messagesContainer = require("./containers/containerMongo.js");
 const authRouter = require("./routes/auth.routes");
+const Users = require("./models/users.model");
 
 const { isValidPassword, checkAuth } = require("./utils/helpers.js");
 const appRouter = require("./routes/app.routes.js");
@@ -34,42 +32,46 @@ app.engine(
         layoutsDir: __dirname + "/views",
     })
 );
-app.use(authRouter);
-app.use(appRouter);
+
 app.use(
     session({
         secret: "12345",
         rolling: true,
         resave: true,
-        saveUnitialized: true,
-        // store: MongoStore.create({
-        //     mongoUrl:
-        //         "mongodb+srv://jomalolep:Arush1429@cluster0.tus6ylk.mongodb.net/?retryWrites=true&w=majority",
-        //     mongoOptions: mongoConfig,
-        // }),
+        saveUninitialized: false,
+        cookie: {
+            httpOnly: true,
+            maxAge: 1000 * 60 * 60 * 24 * 7,
+            secure: false,
+        },
     })
 );
 
-/////////////////////////////////Passport///////////////////////////////////
 app.use(passport.initialize());
-app.use(passportt.session());
+app.use(passport.session());
+
+/////////////////////////////////Passport///////////////////////////////////
 
 passport.use(
     "login",
-    new LocalStrategy((username, password, done) => {
-        let user; //TODO: CONSULTAR EN MONGO LOGIN
+    new LocalStrategy( async (username, password, done) => {
+        try {
+            const user = await Users.find({ username });
 
-        if (!user) {
-            console.log("User not found");
-            return done(null, false, { message: "User not found" });
+            if (!user) {
+                console.log("User not found");
+                return done(null, false, { message: "User not found" });
+            }
+
+            if (!isValidPassword(user, password)) {
+                console.log("Wrong Password");
+                return done(null, false, { message: "Wrong Password" });
+            }
+            return done(null, user);
+
+        } catch (error) {
+            console.log(error);
         }
-
-        if (!isValidPassword(user, password)) {
-            console.log("Wrong Password");
-            return done(null, false, { message: "Wrong Password" });
-        }
-
-        return done(null, user);
     })
 );
 
@@ -77,8 +79,8 @@ passport.use(
     "signup",
     new LocalStrategy(
         { passReqToCallback: true },
-        (req, username, password, done) => {
-            let user; //TODO: CONSULTAR EN MONGO SIGNUP
+        async (req, username, password, done) => {
+            const user = await Users.find({ username });
             const { name, email } = req.body;
 
             if (user) {
@@ -102,12 +104,17 @@ passport.serializeUser((user, done) => {
     done(null, user.id);
 });
 
-passport.deserializeUser((id, done) => {
-    let user; //TODO: CONSULTAR  MONGO
+passport.deserializeUser(async(id, done) => {
+    const user = await Users.find({ username });
     done(null, user);
 });
 
 //////////////////////////////////////////////////////////////////////////////////
+app.use(authRouter);
+app.use(appRouter);
+
+const httpServer = new HttpServer(app);
+const io = new IOServer(httpServer);
 
 io.on("connection", (socket) => {
     socket.on("new-message", (msg) => {
