@@ -1,9 +1,14 @@
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 
-const isValidPassword = (user, password) => {
-    return bcrypt.compareSync(password, user.passports);
+const isValidPassword = (userBDPassword, password) => {
+    console.log("Bcrypt helper: " + password)
+    return bcrypt.compareSync(password, userBDPassword);
 };
+
+const createHash = (password) => {
+    return bcrypt.hashSync(password, bcrypt.genSaltSync(10), null)
+}
 
 const checkAuth = (req, res, next) => {
     if(req.isAuthenticated()) {
@@ -27,4 +32,4 @@ const connectDB = async () => {
     }
 };
 
-module.exports = { isValidPassword, checkAuth, connectDB };
+module.exports = { isValidPassword, checkAuth, connectDB, createHash };

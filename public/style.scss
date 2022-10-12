@@ -4,6 +4,9 @@ body {
     background-color: #f2f2f2;
     font-family: 'Figtree', Arial, Helvetica, sans-serif;
 }
+a {
+    text-decoration: none;
+}
 
 main {
     width: 400px;
@@ -24,7 +27,7 @@ main {
         font-family: 'Figtree', Arial, Helvetica, sans-serif;
     }
 
-    input[type='button'], .btn-chat {
+    input[type='button'], .btn-chat, .logout {
         width: 100%;
         display: block;
         border: none;

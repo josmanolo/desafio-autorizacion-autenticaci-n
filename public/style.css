@@ -5,6 +5,10 @@ body {
   font-family: "Figtree", Arial, Helvetica, sans-serif;
 }
 
+a {
+  text-decoration: none;
+}
+
 main {
   width: 400px;
   margin: 0 auto;
@@ -22,7 +26,7 @@ main input {
   box-sizing: border-box;
   font-family: "Figtree", Arial, Helvetica, sans-serif;
 }
-main input[type=button], main .btn-chat {
+main input[type=button], main .btn-chat, main .logout {
   width: 100%;
   display: block;
   border: none;

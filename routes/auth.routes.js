@@ -25,19 +25,19 @@ authRouter.post(
     "/login",
     passport.authenticate("login", {
         successRedirect: "/api/chat-products",
-        failureRedirect: "/login",
+        failureRedirect: "/login-error",
     }),
     (req, res) => {
-        console.log(res)
+        console.log("Login Post: ", res)
     }
 );
 
-authRouter.post(
+authRouter.get(
     "/logout",
     (req, res) => {
         try {
             req.logout((err) => {
-                if (error) return next(err);
+                if (err) return next(err);
                 res.redirect("/login");
             });
         } catch (error) {
@@ -55,9 +55,17 @@ authRouter.get("/signup", (req, res) => {
 
 authRouter.post("/signup", passport.authenticate("signup", {
     successRedirect: "/login",
-    failureRedirect: "/signup",
+    failureRedirect: "/signup-error",
 }), (req, res) => {
     console.log("yes")
+})
+
+authRouter.get("/login-error", (req, res) => {
+    res.render("index", { layout: "login-error" });
+})
+
+authRouter.get("/signup-error", (req, res) => {
+    res.render("index", { layout: "signup-error" });
 })
 
 module.exports = authRouter;

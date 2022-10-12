@@ -9,7 +9,7 @@ const messagesContainer = require("./containers/containerMongo.js");
 const authRouter = require("./routes/auth.routes");
 const Users = require("./models/users.model");
 
-const { isValidPassword, checkAuth } = require("./utils/helpers.js");
+const { isValidPassword, checkAuth, createHash } = require("./utils/helpers.js");
 const appRouter = require("./routes/app.routes.js");
 
 const Messages = new messagesContainer();
@@ -54,57 +54,69 @@ app.use(passport.session());
 
 passport.use(
     "login",
-    new LocalStrategy( async (username, password, done) => {
-        try {
-            const user = await Users.find({ username });
+    new LocalStrategy(
+        { usernameField: "username", passwordField: "password" },
+        async (username, password, done) => {
+            try {
+                const user = await Users.findOne({ username: username });
 
-            if (!user) {
-                console.log("User not found");
-                return done(null, false, { message: "User not found" });
+                if (user.length === 0) {
+                    console.log("User not found");
+                    return done(null, false, { message: "User not found" });
+                }
+
+                if (!isValidPassword(user.password, password)) {
+                    console.log("Wrong Password");
+                    return done(null, false, { message: "Wrong Password" });
+                }
+                return done(null, user);
+            } catch (error) {
+                console.log(error);
             }
-
-            if (!isValidPassword(user, password)) {
-                console.log("Wrong Password");
-                return done(null, false, { message: "Wrong Password" });
-            }
-            return done(null, user);
-
-        } catch (error) {
-            console.log(error);
         }
-    })
+    )
 );
 
 passport.use(
     "signup",
     new LocalStrategy(
-        { passReqToCallback: true },
+        {
+            usernameField: "username",
+            passwordField: "password",
+            passReqToCallback: true,
+        },
         async (req, username, password, done) => {
-            const user = await Users.find({ username });
-            const { name, email } = req.body;
+            try {
+                const user = await Users.find({ username });
+                const { name, email } = req.body;
 
-            if (user) {
-                console.log("User already exist");
-                return done(null, false, { message: "User already exist" });
+                console.log(user);
+
+                if (user.length > 0) {
+                    console.log("User already exist");
+                    return done(null, false, { message: "User already exist" });
+                }
+
+                const newUser = {
+                    username,
+                    password: createHash(password),
+                    name,
+                    email,
+                };
+                new Users(newUser).save();
+                return done(null, username);
+            } catch (error) {
+                console.log(error)
             }
-
-            const newUser = {
-                username,
-                password,
-                name,
-                email,
-            };
-            //TODO: GUARDAR EN MONGO
-            return donde;
         }
     )
 );
 
-passport.serializeUser((user, done) => {
-    done(null, user.id);
+passport.serializeUser((username, done) => {
+    done(null, username);
 });
 
-passport.deserializeUser(async(id, done) => {
+passport.deserializeUser(async (username, done) => {
     const user = await Users.find({ username });
     done(null, user);
 });
